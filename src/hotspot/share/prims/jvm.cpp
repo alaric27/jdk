@@ -2930,10 +2930,12 @@ void jio_print(const char* s, size_t len) {
 // the target java.lang.Thread is locked at the Java level - in both
 // cases the target cannot exit.
 
+// JVM_StartThread创建操作系统线程，执行thread_entry函数
 static void thread_entry(JavaThread* thread, TRAPS) {
   HandleMark hm(THREAD);
   Handle obj(THREAD, thread->threadObj());
   JavaValue result(T_VOID);
+  // Thread.start 调用 Thread.run 方法
   JavaCalls::call_virtual(&result,
                           obj,
                           vmClasses::Thread_klass(),
@@ -2943,6 +2945,7 @@ static void thread_entry(JavaThread* thread, TRAPS) {
 }
 
 
+// Thread.start() 对应 JVM_StartThread
 JVM_ENTRY(void, JVM_StartThread(JNIEnv* env, jobject jthread))
 #if INCLUDE_CDS
   if (CDSConfig::is_dumping_static_archive()) {
@@ -2996,6 +2999,7 @@ JVM_ENTRY(void, JVM_StartThread(JNIEnv* env, jobject jthread))
       //  - Avoid passing negative values which would result in really large stacks.
       NOT_LP64(if (size > SIZE_MAX) size = SIZE_MAX;)
       size_t sz = size > 0 ? (size_t) size : 0;
+      // 创建JavaxThread， 该类内部会创建操作系统线程，然后关联Java线程
       native_thread = new JavaThread(&thread_entry, sz);
 
       // At this point it may be possible that no osthread was created for the
@@ -3034,6 +3038,7 @@ JVM_ENTRY(void, JVM_StartThread(JNIEnv* env, jobject jthread))
 
   JFR_ONLY(Jfr::on_java_thread_start(thread, native_thread);)
 
+  // 设置线程状态为RUNNABLE
   Thread::start(native_thread);
 
 JVM_END
@@ -3062,6 +3067,7 @@ JVM_LEAF(void, JVM_Yield(JNIEnv *env, jclass threadClass))
   os::naked_yield();
 JVM_END
 
+// Thread.sleep 对应的实现
 JVM_ENTRY(void, JVM_SleepNanos(JNIEnv* env, jclass threadClass, jlong nanos))
   if (nanos < 0) {
     THROW_MSG(vmSymbols::java_lang_IllegalArgumentException(), "nanosecond timeout value out of range");

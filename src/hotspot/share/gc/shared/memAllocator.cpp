@@ -364,9 +364,11 @@ HeapWord* MemAllocator::mem_allocate(Allocation& allocation) const {
 oop MemAllocator::allocate() const {
   oop obj = nullptr;
   {
+    // 分配内存
     Allocation allocation(*this, &obj);
     HeapWord* mem = mem_allocate(allocation);
     if (mem != nullptr) {
+      // 初始化对象头
       obj = initialize(mem);
     } else {
       // The unhandled oop detector will poison local variable obj,

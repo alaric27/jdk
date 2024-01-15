@@ -65,9 +65,12 @@ class frame {
  private:
   // Instance variables:
   union {
+      // 栈顶指针
     intptr_t* _sp; // stack pointer (from Thread::last_Java_sp)
     int _offset_sp; // used by frames in stack chunks
   };
+
+  // 指向下一条指令的指针
   address   _pc; // program counter (the next instruction after the call)
   mutable CodeBlob* _cb; // CodeBlob that "owns" pc
   mutable const ImmutableOopMap* _oop_map; // oop map, for compiled/stubs frames only

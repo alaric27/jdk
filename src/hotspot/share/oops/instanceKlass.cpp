@@ -1500,12 +1500,16 @@ instanceOop InstanceKlass::register_finalizer(instanceOop i, TRAPS) {
   return h_i();
 }
 
+/**
+ * 创建对象
+ */
 instanceOop InstanceKlass::allocate_instance(TRAPS) {
   bool has_finalizer_flag = has_finalizer(); // Query before possible GC
   size_t size = size_helper();  // Query before forming handle.
 
   instanceOop i;
 
+  // 在堆上分配对象
   i = (instanceOop)Universe::heap()->obj_allocate(this, size, CHECK_NULL);
   if (has_finalizer_flag && !RegisterFinalizersAtInit) {
     i = register_finalizer(i, CHECK_NULL);

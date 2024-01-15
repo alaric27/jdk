@@ -523,6 +523,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   JavaThread::_thread_oop_storage = OopStorageSet::create_strong("Thread OopStorage", mtThread);
 
   // Attach the main thread to this os thread
+  // 主线程
   JavaThread* main_thread = new JavaThread();
   main_thread->set_thread_state(_thread_in_vm);
   main_thread->initialize_thread_current();
@@ -591,6 +592,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   JvmtiExport::transition_pending_onload_raw_monitors();
 
   // Create the VMThread
+  // 创建虚拟机线程
   { TraceTime timer("Start VMThread", TRACETIME_LOG(Info, startuptime));
 
     VMThread::create();
@@ -687,6 +689,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Start the service thread
   // The service thread enqueues JVMTI deferred events and does various hashtable
   // and other cleanups.  Needs to start before the compilers start posting events.
+  // 服务线程
   ServiceThread::initialize();
 
   // Start the monitor deflation thread:
@@ -715,6 +718,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 #endif
   if (init_compilation) {
+      // 编译器线程
     CompileBroker::compilation_init(CHECK_JNI_ERR);
   }
 #endif

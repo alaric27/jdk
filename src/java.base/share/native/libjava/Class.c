@@ -94,6 +94,7 @@ static JNINativeMethod methods[] = {
 #undef CTR
 #undef PD
 
+// 类加载的时候调用静态方法registerNatives，注册JNI
 JNIEXPORT void JNICALL
 Java_java_lang_Class_registerNatives(JNIEnv *env, jclass cls)
 {

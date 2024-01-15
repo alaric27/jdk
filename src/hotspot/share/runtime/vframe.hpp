@@ -57,8 +57,11 @@ class ContinuationEntry;
 
 class vframe: public ResourceObj {
  protected:
+    // 物理栈帧
   frame        _fr;      // Raw frame behind the virtual frame.
+  // callee-saved寄存器
   RegisterMap  _reg_map; // Register map for the raw frame (used to handle callee-saved registers).
+  // 栈帧所属线程
   JavaThread*  _thread;  // The thread owning the raw frame.
   stackChunkHandle _chunk;
 

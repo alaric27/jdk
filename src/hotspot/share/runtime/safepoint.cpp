@@ -349,6 +349,7 @@ void SafepointSynchronize::arm_safepoint() {
 }
 
 // Roll all threads forward to a safepoint and suspend them all
+// 开启安全点
 void SafepointSynchronize::begin() {
   assert(Thread::current()->is_VM_thread(), "Only VM thread may execute a safepoint");
 
@@ -390,6 +391,7 @@ void SafepointSynchronize::begin() {
   arm_safepoint();
 
   // Will spin until all threads are safe.
+  // 等待所有线程到达安全点
   int iterations = synchronize_threads(safepoint_limit_time, nof_threads, &initial_running);
   assert(_waiting_to_block == 0, "No thread should be running");
 

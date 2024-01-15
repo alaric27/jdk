@@ -809,6 +809,7 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
     interp_verify_oop(rax, state);
   }
 
+  // 安全点处理
   address* const safepoint_table = Interpreter::safept_table(state);
 #ifdef _LP64
   Label no_safepoint, dispatch;
@@ -863,8 +864,10 @@ void InterpreterMacroAssembler::dispatch_only_noverify(TosState state) {
 
 void InterpreterMacroAssembler::dispatch_next(TosState state, int step, bool generate_poll) {
   // load next bytecode (load before advancing _bcp_register to prevent AGI)
+  // 加载一条字节码指令
   load_unsigned_byte(rbx, Address(_bcp_register, step));
   // advance _bcp_register
+  // 字节码指针前进
   increment(_bcp_register, step);
   dispatch_base(state, Interpreter::dispatch_table(state), true, generate_poll);
 }

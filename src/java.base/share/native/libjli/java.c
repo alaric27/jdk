@@ -466,6 +466,7 @@ invokeInstanceMainWithoutArgs(JNIEnv *env, jclass mainClass) {
     return 1;
 }
 
+// 入口。 从main.c main -> java.c
 int
 JavaMain(void* _args)
 {
@@ -488,6 +489,7 @@ JavaMain(void* _args)
 
     /* Initialize the virtual machine */
     start = CurrentTimeMicros();
+    // 初始化虚拟机
     if (!InitializeJVM(&vm, &env, &ifn)) {
         JLI_ReportErrorMessage(JVM_ERROR1);
         exit(1);
@@ -586,6 +588,7 @@ JavaMain(void* _args)
      * This method also correctly handles launching existing JavaFX
      * applications that may or may not have a Main-Class manifest entry.
      */
+    // 加载main 函数所在类
     mainClass = LoadMainClass(env, mode, what);
     CHECK_EXCEPTION_NULL_LEAVE(mainClass);
     /*
@@ -620,6 +623,7 @@ JavaMain(void* _args)
      * The main method is invoked here so that extraneous java stacks are not in
      * the application stack trace.
      */
+    // 调用Java main 方法
     if (!invokeStaticMainWithArgs(env, mainClass, mainArgs) &&
         !invokeInstanceMainWithArgs(env, mainClass, mainArgs) &&
         !invokeStaticMainWithoutArgs(env, mainClass) &&

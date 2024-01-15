@@ -1328,7 +1328,7 @@ address TemplateInterpreterGenerator::generate_abstract_entry(void) {
 
 //
 // Generic interpreted method entry to (asm) interpreter
-//
+// 解释执行普通方法
 address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // determine code generation flags
   bool inc_counter  = UseCompiler || CountCompiledCalls;
@@ -1345,6 +1345,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
 
 
   // get parameter size (always needed)
+    // 获取参数个数 放入rcx
   __ movptr(rdx, constMethod);
   __ load_unsigned_short(rcx, size_of_parameters);
 
@@ -1352,6 +1353,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // rcx: size of parameters
   // rbcp: sender_sp (could differ from sp+wordSize if we were called via c2i )
 
+  // 获取局部变量个数
   __ load_unsigned_short(rdx, size_of_locals); // get size of locals in words
   __ subl(rdx, rcx); // rdx = no. of additional locals
 
@@ -1371,6 +1373,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // rdx - # of additional locals
   // allocate space for locals
   // explicitly initialize locals
+  // 分配局部变量槽，然后初始化这些槽
   {
     Label exit, loop;
     __ testl(rdx, rdx);
@@ -1471,6 +1474,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // jvmti support
   __ notify_method_entry();
 
+  // 开始执行字节码
   __ dispatch_next(vtos);
 
   // invocation counter overflow
