@@ -718,6 +718,7 @@ void JavaThread::thread_main_inner() {
       this->set_native_thread_name(this->name());
     }
     HandleMark hm(this);
+      // 执行线程入口方法， 最终会调到 Thread.run方法
     this->entry_point()(this, this);
   }
 

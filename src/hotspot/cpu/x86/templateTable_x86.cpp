@@ -271,10 +271,12 @@ void TemplateTable::aconst_null() {
 }
 
 void TemplateTable::iconst(int value) {
+    // 要求执行前栈顶无缓存，执行后栈顶是int类型
   transition(vtos, itos);
   if (value == 0) {
     __ xorl(rax, rax);
   } else {
+      // 把value值设置到rax寄存器, 这里使用rax寄存器当栈顶, 省去了压栈出栈的内存操作
     __ movl(rax, value);
   }
 }
@@ -1726,7 +1728,8 @@ void TemplateTable::dneg() {
 void TemplateTable::iinc() {
   transition(vtos, vtos);
   __ load_signed_byte(rdx, at_bcp(2)); // get constant
-  locals_index(rbx);
+  locals_index(rbx); // 获取局部变量
+  // 局部变量 = 局部变量 + constant
   __ addl(iaddress(rbx), rdx);
 }
 
@@ -2230,12 +2233,14 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
   }
 
   // Pre-load the next target bytecode into rbx
+  // 加载跳转目标
   __ load_unsigned_byte(rbx, Address(rbcp, 0));
 
   // continue with the bytecode @ target
   // rax: return bci for jsr's, unused otherwise
   // rbx: target bytecode
   // r13: target bcp
+  // 从目标字节码处开始执行
   __ dispatch_only(vtos, true);
 
   if (UseLoopCounter) {
@@ -2313,15 +2318,18 @@ void TemplateTable::if_0cmp(Condition cc) {
   __ profile_not_taken_branch(rax);
 }
 
+/**
+ * 根据条件挑战到指定字节码
+ */
 void TemplateTable::if_icmp(Condition cc) {
   transition(itos, vtos);
   // assume branch is more often taken than not (loops use backward branches)
   Label not_taken;
   __ pop_i(rdx);
-  __ cmpl(rdx, rax);
-  __ jcc(j_not(cc), not_taken);
-  branch(false, false);
-  __ bind(not_taken);
+  __ cmpl(rdx, rax); // 栈顶两个整数比较
+  __ jcc(j_not(cc), not_taken); // 根据条件进行跳转
+  branch(false, false); // 跳转
+  __ bind(not_taken); // 不需要跳转
   __ profile_not_taken_branch(rax);
 }
 
@@ -2599,6 +2607,7 @@ void TemplateTable::_return(TosState state) {
     __ get_thread(thread);
     __ testb(Address(thread, JavaThread::polling_word_offset()), SafepointMechanism::poll_bit());
 #endif
+    // 检查是否需要进入安全点
     __ jcc(Assembler::zero, no_safepoint);
     __ push(state);
     __ push_cont_fastpath();
@@ -2615,6 +2624,7 @@ void TemplateTable::_return(TosState state) {
   if (state == itos) {
     __ narrow(rax);
   }
+  // 弹出当前栈帧
   __ remove_activation(state, rbcp);
 
   __ jmp(rbcp);
@@ -3212,6 +3222,9 @@ void TemplateTable::jvmti_post_field_mod(Register cache, Register index, bool is
   }
 }
 
+/**
+ * 将一个值存放到对象成员字段，或者将一个值存放到类的static字段
+ */
 void TemplateTable::putfield_or_static(int byte_no, bool is_static, RewriteControl rc) {
   transition(vtos, vtos);
 
@@ -3237,12 +3250,14 @@ void TemplateTable::putfield_or_static(int byte_no, bool is_static, RewriteContr
   __ testl(flags, flags);
   __ jcc(Assembler::zero, notVolatile);
 
+  // 如果是volatile变量，先正常赋值给成员变量再插入内存屏障
   putfield_or_static_helper(byte_no, is_static, rc, obj, off, tos_state);
   volatile_barrier(Assembler::Membar_mask_bits(Assembler::StoreLoad |
                                                Assembler::StoreStore));
   __ jmp(Done);
   __ bind(notVolatile);
 
+  // 如果不是volatile成员变量，简单赋值即可
   putfield_or_static_helper(byte_no, is_static, rc, obj, off, tos_state);
 
   __ bind(Done);
@@ -4075,8 +4090,11 @@ void TemplateTable::_new() {
 
   const Register thread = LP64_ONLY(r15_thread) NOT_LP64(rcx);
 
+  // 如果开启-XX:+UseTLAB，则在TLAB中分配对象，否则在Eden中分配对象
+  // 如果分配成功则将对象引用放入rax
   if (UseTLAB) {
     NOT_LP64(__ get_thread(thread);)
+    // 在线程的TLAB 区分配对象，采用指针碰撞的方式分配对象
     __ tlab_allocate(thread, rax, rdx, 0, rcx, rbx, slow_case);
     if (ZeroTLAB) {
       // the fields have been already cleared
@@ -4146,10 +4164,12 @@ void TemplateTable::_new() {
 
   __ get_constant_pool(rarg1);
   __ get_unsigned_2_byte_index_at_bcp(rarg2, 1);
+  // 调用klass->allocate_instance 分配内存，最终会调用特定垃圾回收器的mem_allocate()方法
   call_VM(rax, CAST_FROM_FN_PTR(address, InterpreterRuntime::_new), rarg1, rarg2);
    __ verify_oop(rax);
 
   // continue
+  // 分配完成
   __ bind(done);
 }
 
@@ -4173,6 +4193,9 @@ void TemplateTable::anewarray() {
           rarg1, rarg2, rax);
 }
 
+/**
+ * 获取数组长度
+ */
 void TemplateTable::arraylength() {
   transition(atos, itos);
   __ movl(rax, Address(rax, arrayOopDesc::length_offset_in_bytes()));
@@ -4339,9 +4362,13 @@ void TemplateTable::_breakpoint() {
 //-----------------------------------------------------------------------------
 // Exceptions
 
+/**
+ * Java语言的throw 关键字，反映到JVM上就是一个athrow字节码
+ */
 void TemplateTable::athrow() {
   transition(atos, vtos);
   __ null_check(rax);
+  // 跳到 TemplateInterpreterGenerator::generate_throw_exception 生成的入口
   __ jump(ExternalAddress(Interpreter::throw_exception_entry()));
 }
 
@@ -4362,6 +4389,7 @@ void TemplateTable::athrow() {
 // [frame data   ] <--- monitor block bot
 // ...
 // [saved rbp    ] <--- rbp
+// monitorenter 是Java 关键字 synchronized的底层实现，它获取栈顶对象，然后对其加锁
 void TemplateTable::monitorenter() {
   transition(atos, vtos);
 
@@ -4450,7 +4478,9 @@ void TemplateTable::monitorenter() {
   __ increment(rbcp);
 
   // store object
+  // 将待加锁的对象放入基本对象锁中
   __ movptr(Address(rmon, BasicObjectLock::obj_offset()), rax);
+  // 加锁
   __ lock_object(rmon);
 
   // check to make sure this monitor doesn't cause stack overflow after locking

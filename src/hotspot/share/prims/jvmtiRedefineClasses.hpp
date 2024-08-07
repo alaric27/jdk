@@ -416,6 +416,7 @@ class VM_RedefineClasses: public VM_Operation {
   void transfer_old_native_function_registrations(InstanceKlass* the_class);
 
   // Install the redefinition of a class
+  // 重定义类
   void redefine_single_class(Thread* current, jclass the_jclass,
                              InstanceKlass* scratch_class_oop);
 

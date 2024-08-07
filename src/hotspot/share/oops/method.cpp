@@ -1310,6 +1310,7 @@ void Method::set_code(const methodHandle& mh, CompiledMethod *code) {
   // These writes must happen in this order, because the interpreter will
   // directly jump to from_interpreted_entry which jumps to an i2c adapter
   // which jumps to _from_compiled_entry.
+  // 设置编译好的机器代码
   mh->_code = code;             // Assign before allowing compiled code to exec
 
   int comp_level = code->comp_level();
@@ -1320,6 +1321,7 @@ void Method::set_code(const methodHandle& mh, CompiledMethod *code) {
   }
 
   OrderAccess::storestore();
+  // 设置解释器入口点为编译后的机器代码
   mh->_from_compiled_entry = code->verified_entry_point();
   OrderAccess::storestore();
 

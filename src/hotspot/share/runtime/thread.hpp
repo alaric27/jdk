@@ -520,6 +520,7 @@ class Thread: public ThreadShadow {
 
 protected:
   // OS data associated with the thread
+  // 关联的操作系统线程
   OSThread* _osthread;  // Platform-specific thread information
 
   // Thread local resource area for temporary allocation within the VM

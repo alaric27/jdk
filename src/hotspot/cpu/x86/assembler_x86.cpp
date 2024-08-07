@@ -232,6 +232,7 @@ void Assembler::set_attributes(InstructionAttr* attributes) {
 
 void Assembler::membar(Membar_mask_bits order_constraint) {
   // We only have to handle StoreLoad
+  // x86只会发生StoreLoad重排序，只需要处理它
   if (order_constraint & StoreLoad) {
     // All usable chips support "locked" instructions which suffice
     // as barriers, and are much faster than the alternative of
@@ -261,6 +262,7 @@ void Assembler::membar(Membar_mask_bits order_constraint) {
       offset = -128;
     }
 
+    // x86上lock指令前缀具有内存屏障的效果，同时又比内存屏障指令(mfence,sfence,lfence)速度更快，因此是使用 lock addl $0, 0($rsp)指令实现的内存屏障
     lock();
     addl(Address(rsp, offset), 0);// Assert the lock# signal here
   }

@@ -823,8 +823,10 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
   }
 
   bind(no_safepoint);
+  // 获取模板表
   lea(rscratch1, ExternalAddress((address)table));
   bind(dispatch);
+  // 跳转到模板表中字节码对应的机器码的地址，然后执行
   jmp(Address(rscratch1, rbx, Address::times_8));
 
 #else
@@ -869,6 +871,7 @@ void InterpreterMacroAssembler::dispatch_next(TosState state, int step, bool gen
   // advance _bcp_register
   // 字节码指针前进
   increment(_bcp_register, step);
+  // 具体执行逻辑
   dispatch_base(state, Interpreter::dispatch_table(state), true, generate_poll);
 }
 

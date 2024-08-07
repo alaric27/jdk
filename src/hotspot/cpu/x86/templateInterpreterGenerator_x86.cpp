@@ -614,6 +614,7 @@ void TemplateInterpreterGenerator::lock_method() {
   __ movptr(Address(rsp, BasicObjectLock::obj_offset()), rax);
   const Register lockreg = NOT_LP64(rdx) LP64_ONLY(c_rarg1);
   __ movptr(lockreg, rsp); // object address
+  // 加锁
   __ lock_object(lockreg);
 }
 
@@ -790,6 +791,7 @@ void TemplateInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
 // Interpreter stub for calling a native method. (asm interpreter)
 // This sets up a somewhat different looking stack for calling the
 // native method than the typical interpreter frame setup.
+// 本地方法入口
 address TemplateInterpreterGenerator::generate_native_entry(bool synchronized) {
   // determine code generation flags
   bool inc_counter  = UseCompiler || CountCompiledCalls;
@@ -1285,6 +1287,7 @@ address TemplateInterpreterGenerator::generate_native_entry(bool synchronized) {
 
   __ movptr(t, Address(rbp,
                        (frame::interpreter_frame_result_handler_offset) * wordSize));
+  // 调用native 方法
   __ call(t);
 
   // remove activation
@@ -1362,9 +1365,11 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
 //   __ andl(rdx, -2);
 
   // see if we've got enough room on the stack for locals plus overhead.
+  // 检查栈上是否可以容纳即将分配的局部变量槽
   generate_stack_overflow_check();
 
   // get return address
+  // 获取返回地址
   __ pop(rax);
 
   // compute beginning of parameters
@@ -1386,6 +1391,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   }
 
   // initialize fixed part of activation frame
+  // 创建解释器栈帧
   generate_fixed_frame(false);
 
   // make sure method is not native & not abstract
@@ -1421,6 +1427,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
 
   __ profile_parameters_type(rax, rcx, rdx);
   // increment invocation count & check for overflow
+  // 执行字节码前增加方法调用计数
   Label invocation_counter_overflow;
   if (inc_counter) {
     generate_counter_incr(&invocation_counter_overflow);
@@ -1439,6 +1446,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // check for synchronized methods
   // Must happen AFTER invocation_counter check and stack overflow check,
   // so method is not locked if overflows.
+  // 如果是同步方法，调用lock_method锁住方法
   if (synchronized) {
     // Allocate monitor and lock method
     lock_method();
@@ -1478,6 +1486,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   __ dispatch_next(vtos);
 
   // invocation counter overflow
+  // 如果调用计数达到一定值，则跳转到此处通知编译器判断是否编译
   if (inc_counter) {
     // Handle overflow of counter and compile method
     __ bind(invocation_counter_overflow);
@@ -1493,6 +1502,7 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
 void TemplateInterpreterGenerator::generate_throw_exception() {
   // Entry point in previous activation (i.e., if the caller was
   // interpreted)
+  // 抛异常的入口
   Interpreter::_rethrow_exception_entry = __ pc();
   // Restore sp to interpreter_frame_last_sp even though we are going
   // to empty the expression stack for the exception processing.

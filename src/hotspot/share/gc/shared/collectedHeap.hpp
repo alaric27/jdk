@@ -160,6 +160,7 @@ class CollectedHeap : public CHeapObj<mtGC> {
   // The obj and array allocate methods are covers for these methods.
   // mem_allocate() should never be
   // called to allocate TLABs, only individual objects.
+  // 分配内存
   virtual HeapWord* mem_allocate(size_t size,
                                  bool* gc_overhead_limit_was_exceeded) = 0;
 

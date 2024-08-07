@@ -5216,6 +5216,7 @@ InstanceKlass* ClassFileParser::create_instance_klass(bool changed_by_loadhook,
     return _klass;
   }
 
+  // 分配 InstanceKlass所需的内存
   InstanceKlass* const ik =
     InstanceKlass::allocate_instance_klass(*this, CHECK_NULL);
 
@@ -5223,6 +5224,7 @@ InstanceKlass* ClassFileParser::create_instance_klass(bool changed_by_loadhook,
     mangle_hidden_class_name(ik);
   }
 
+  // 使用parse_stream 得到的数据，填充InstanceKlass对象
   fill_instance_klass(ik, changed_by_loadhook, cl_inst_info, CHECK_NULL);
 
   assert(_klass == ik, "invariant");
@@ -5244,6 +5246,7 @@ void ClassFileParser::fill_instance_klass(InstanceKlass* ik,
   // including classes in the bootstrap (null) class loader.
   const bool publicize = !is_internal();
 
+  // 添加InstanceKlass对象到 classLoaderData
   _loader_data->add_class(ik, publicize);
 
   set_klass_to_deallocate(ik);
@@ -5592,6 +5595,7 @@ ClassFileParser::ClassFileParser(ClassFileStream* stream,
   // Do not restrict it to jdk1.0 or jdk1.1 to maintain backward compatibility (4982376)
   _relax_verify = relax_format_check_for(_loader_data);
 
+  // 解析类文件
   parse_stream(stream, CHECK);
 
   post_process_parsed_stream(stream, _cp, CHECK);
@@ -5689,6 +5693,9 @@ ClassFileParser::~ClassFileParser() {
   }
 }
 
+/**
+ * 解析类文件流
+ */
 void ClassFileParser::parse_stream(const ClassFileStream* const stream,
                                    TRAPS) {
 
@@ -5728,6 +5735,7 @@ void ClassFileParser::parse_stream(const ClassFileStream* const stream,
 
   ConstantPool* const cp = _cp;
 
+  // 常量池
   parse_constant_pool(stream, cp, _orig_cp_size, CHECK);
 
   assert(cp_size == (u2)cp->length(), "invariant");

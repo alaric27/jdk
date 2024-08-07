@@ -535,6 +535,7 @@ objc_registerThreadWithCollector_t objc_registerThreadWithCollectorFunction = nu
 #endif
 
 // Thread start routine for all newly created threads
+// 操作系统现在方法的入口
 static void *thread_native_entry(Thread *thread) {
 
   thread->record_stack_base_and_size();
@@ -629,6 +630,7 @@ bool os::create_thread(Thread* thread, ThreadType thr_type,
     pthread_t tid;
     int ret = 0;
     int limit = 3;
+    // 创建操作系统线程
     do {
       ret = pthread_create(&tid, &attr, (void* (*)(void*)) thread_native_entry, thread);
     } while (ret == EAGAIN && limit-- > 0);

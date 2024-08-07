@@ -1072,6 +1072,9 @@ void InstanceKlass::clean_initialization_error_table() {
   }
 }
 
+/**
+ * 类的初始化
+ */
 void InstanceKlass::initialize_impl(TRAPS) {
   HandleMark hm(THREAD);
 
@@ -1505,6 +1508,8 @@ instanceOop InstanceKlass::register_finalizer(instanceOop i, TRAPS) {
  */
 instanceOop InstanceKlass::allocate_instance(TRAPS) {
   bool has_finalizer_flag = has_finalizer(); // Query before possible GC
+
+  // 获取对象大小
   size_t size = size_helper();  // Query before forming handle.
 
   instanceOop i;
@@ -1628,6 +1633,8 @@ void InstanceKlass::call_class_initializer(TRAPS) {
                 h_method() == nullptr ? "(no method)" : "", p2i(this),
                 THREAD->name());
   }
+
+  // 调用初始化方法
   if (h_method() != nullptr) {
     JavaCallArguments args; // No arguments
     JavaValue result(T_VOID);

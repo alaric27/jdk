@@ -352,6 +352,7 @@ HeapWord* MemAllocator::mem_allocate_slow(Allocation& allocation) const {
 HeapWord* MemAllocator::mem_allocate(Allocation& allocation) const {
   if (UseTLAB) {
     // Try allocating from an existing TLAB.
+    // 使用TLAB分配内存
     HeapWord* mem = mem_allocate_inside_tlab_fast();
     if (mem != nullptr) {
       return mem;
