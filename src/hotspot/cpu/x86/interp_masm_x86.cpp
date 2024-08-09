@@ -1165,6 +1165,7 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg) {
          "The argument is only for looks. It must be c_rarg1");
 
   if (LockingMode == LM_MONITOR) {
+      // 如果强制走重量级锁
     call_VM(noreg,
             CAST_FROM_FN_PTR(address, InterpreterRuntime::monitorenter),
             lock_reg);
@@ -1200,6 +1201,7 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg) {
 #endif
       // Load object header, prepare for CAS from unlocked to locked.
       movptr(swap_reg, Address(obj_reg, oopDesc::mark_offset_in_bytes()));
+      // 轻量级锁
       lightweight_lock(obj_reg, swap_reg, thread, tmp_reg, slow_case);
     } else if (LockingMode == LM_LEGACY) {
       // Load immediate 1 into swap_reg %rax
@@ -1267,6 +1269,7 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg) {
               CAST_FROM_FN_PTR(address, InterpreterRuntime::monitorenter_obj),
               obj_reg);
     } else {
+        // 重量级锁
       call_VM(noreg,
               CAST_FROM_FN_PTR(address, InterpreterRuntime::monitorenter),
               lock_reg);

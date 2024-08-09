@@ -102,18 +102,23 @@ EpsilonHeap* EpsilonHeap::heap() {
   return named_heap<EpsilonHeap>(CollectedHeap::Epsilon);
 }
 
+/**
+ * 分配内存
+ */
 HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
   assert(is_object_aligned(size), "Allocation size should be aligned: " SIZE_FORMAT, size);
 
   HeapWord* res = nullptr;
   while (true) {
     // Try to allocate, assume space is available
+    // 分配内存
     res = _space->par_allocate(size);
     if (res != nullptr) {
       break;
     }
 
     // Allocation failed, attempt expansion, and retry:
+    // 分配失败时，扩容，然后再次尝试分配
     {
       MutexLocker ml(Heap_lock);
 
@@ -127,6 +132,7 @@ HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
       size_t space_left = max_capacity() - capacity();
       size_t want_space = MAX2(size, EpsilonMinHeapExpand);
 
+      // 如果剩余空间大于请求扩容空间，可以扩容
       if (want_space < space_left) {
         // Enough space to expand in bulk:
         bool expand = _virtual_space.expand_by(want_space);
@@ -140,7 +146,7 @@ HeapWord* EpsilonHeap::allocate_work(size_t size, bool verbose) {
         // No space left:
         return nullptr;
       }
-
+      // 修改堆结束位置，即扩容
       _space->set_end((HeapWord *) _virtual_space.high());
     }
   }

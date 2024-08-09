@@ -156,6 +156,7 @@ void Compilation::build_hir() {
   }
   {
     PhaseTraceTime timeit(_t_hir_parse);
+    // 创建HIR
     _hir = new IR(this, method(), osr_bci());
   }
   if (log)  log->done("parse");
@@ -177,6 +178,7 @@ void Compilation::build_hir() {
 
   _hir->verify();
 
+  // 条件表达消除, 基本块消除
   if (UseC1Optimizations) {
     NEEDS_CLEANUP
     // optimization
@@ -200,6 +202,7 @@ void Compilation::build_hir() {
   // the control flow must not be changed from here on
   _hir->compute_code();
 
+  // 全局值编号优化
   if (UseGlobalValueNumbering) {
     // No resource mark here! LoopInvariantCodeMotion can allocate ValueStack objects.
     PhaseTraceTime timeit(_t_gvn);
@@ -216,7 +219,7 @@ void Compilation::build_hir() {
     CFGPrinter::print_cfg(_hir, "Before RangeCheckElimination", true, false);
   }
 #endif
-
+// 范围检查消除
   if (RangeCheckElimination) {
     if (_hir->osr_entry() == nullptr) {
       PhaseTraceTime timeit(_t_rangeCheckElimination);
@@ -230,6 +233,7 @@ void Compilation::build_hir() {
   }
 #endif
 
+  // NULL检查消除
   if (UseC1Optimizations) {
     // loop invariant code motion reorders instructions and range
     // check elimination adds new instructions so do null check
@@ -260,6 +264,7 @@ void Compilation::emit_lir() {
 
   LIRGenerator gen(this, method());
   {
+      // HIR转换为LIR
     PhaseTraceTime timeit(_t_lirGeneration);
     hir()->iterate_linear_scan_order(&gen);
   }
@@ -268,7 +273,7 @@ void Compilation::emit_lir() {
 
   {
     PhaseTraceTime timeit(_t_linearScan);
-
+    // 寄存器分配，将LIR的虚拟寄存器映射到物理寄存器
     LinearScan* allocator = new LinearScan(hir(), &gen, frame_map());
     set_allocator(allocator);
     // Assign physical registers to LIR operands using a linear scan algorithm.
@@ -375,6 +380,9 @@ int Compilation::emit_code_body() {
 }
 
 
+/**
+ * 编译Java方法
+ */
 int Compilation::compile_java_method() {
   assert(!method()->is_native(), "should not reach here");
 
@@ -391,6 +399,7 @@ int Compilation::compile_java_method() {
   }
 
   {
+      // 构造HIR
     PhaseTraceTime timeit(_t_buildIR);
     build_hir();
   }
@@ -401,6 +410,7 @@ int Compilation::compile_java_method() {
 
 
   {
+      // 构造LIR
     PhaseTraceTime timeit(_t_emit_lir);
 
     _frame_map = new FrameMap(method(), hir()->number_of_locks(), hir()->max_stack());
@@ -414,6 +424,7 @@ int Compilation::compile_java_method() {
   }
 
   {
+      // 生成机器代码
     PhaseTraceTime timeit(_t_codeemit);
     return emit_code_body();
   }
@@ -485,6 +496,7 @@ void Compilation::compile_method() {
   if (should_install_code()) {
     // install code
     PhaseTraceTime timeit(_t_codeinstall);
+    // 安装编译后的方法
     install_code(frame_size);
   }
 

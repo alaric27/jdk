@@ -1508,6 +1508,7 @@ void PlatformEvent::park() {       // AKA "down()"
   int v;
 
   // atomically decrement _event
+  // CAS原子递减 _event值
   for (;;) {
     v = _event;
     if (Atomic::cmpxchg(&_event, v, v - 1) == v) break;
@@ -1518,15 +1519,17 @@ void PlatformEvent::park() {       // AKA "down()"
     int status = pthread_mutex_lock(_mutex);
     assert_status(status == 0, status, "mutex_lock");
     guarantee(_nParked == 0, "invariant");
+    // 阻塞线程加一
     ++_nParked;
+    // 如果递减后小于0，则阻塞，否则立刻返回
     while (_event < 0) {
       // OS-level "spurious wakeups" are ignored
       status = pthread_cond_wait(_cond, _mutex);
       assert_status(status == 0 MACOS_ONLY(|| status == ETIMEDOUT),
                     status, "cond_wait");
     }
+    // 阻塞线程减一
     --_nParked;
-
     _event = 0;
     status = pthread_mutex_unlock(_mutex);
     assert_status(status == 0, status, "mutex_unlock");
@@ -1668,6 +1671,7 @@ void Parker::park(bool isAbsolute, jlong time) {
   // Return immediately if a permit is available.
   // We depend on Atomic::xchg() having full barrier semantics
   // since we are doing a lock-free update to _counter.
+  // 如果_counter > 0 则直接返回
   if (Atomic::xchg(&_counter, 0) > 0) return;
 
   JavaThread *jt = JavaThread::current();

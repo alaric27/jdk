@@ -81,6 +81,7 @@ public:
       oop obj = CompressedOops::decode_not_null(heap_oop);
       if (is_in_young_gen(obj)) {
         assert(!_young_gen->to()->is_in_reserved(obj), "Scanning field twice?");
+        // 复制对象
         oop new_obj = obj->is_forwarded() ? obj->forwardee()
                                           : _young_gen->copy_to_survivor_space(obj);
         RawAccess<IS_NOT_NULL>::oop_store(p, new_obj);
@@ -723,6 +724,9 @@ void DefNewGeneration::adjust_desired_tenuring_threshold() {
   age_table()->print_age_table(_tenuring_threshold);
 }
 
+/**
+ *  新生代垃圾回收
+ */
 void DefNewGeneration::collect(bool   full,
                                bool   clear_all_soft_refs,
                                size_t size,
@@ -734,6 +738,7 @@ void DefNewGeneration::collect(bool   full,
   // If the next generation is too full to accommodate promotion
   // from this generation, pass on collection; let the next generation
   // do it.
+  // 检查老年带是否能容纳晋升对象
   if (!collection_attempt_is_safe()) {
     log_trace(gc)(":: Collection attempt not safe ::");
     heap->set_incremental_collection_failed(); // Slight lie: we did not even attempt one
@@ -773,19 +778,23 @@ void DefNewGeneration::collect(bool   full,
   assert(heap->no_allocs_since_save_marks(),
          "save marks have not been newly set.");
 
+  // 从GC Root出发扫描存活对象
   {
     StrongRootsScope srs(0);
     RootScanClosure root_cl{this};
     CLDScanClosure cld_scan_closure{this};
 
+    // RootScanClosure.do_oop_work() -> ScavengeHelper.try_scavenge()
     heap->young_process_roots(&root_cl,
                               &old_gen_cl,
                               &cld_scan_closure);
   }
 
   // "evacuate followers".
+  // 处理非GC Root直达，成员字段可达的对象
   evacuate_followers.do_void();
 
+    // 特殊处理软引用、弱引用、虚引用、final引用
   {
     // Reference processing
     KeepAliveClosure keep_alive(this);
@@ -810,6 +819,7 @@ void DefNewGeneration::collect(bool   full,
   _string_dedup_requests.flush();
 
   if (!_promotion_failed) {
+      // 如果可以晋升，则清空Eden,From空间，交互From , to 空间
     // Swap the survivor spaces.
     eden()->clear(SpaceDecorator::Mangle);
     from()->clear(SpaceDecorator::Mangle);
@@ -823,6 +833,7 @@ void DefNewGeneration::collect(bool   full,
       // other spaces.
       to()->mangle_unused_area();
     }
+    // 交换 from to 空间
     swap_spaces();
 
     assert(to()->is_empty(), "to space should be empty now");
@@ -831,6 +842,7 @@ void DefNewGeneration::collect(bool   full,
 
     assert(!heap->incremental_collection_failed(), "Should be clear");
   } else {
+      // 如果有晋升失败的情况，通知老年代，仍然交换From to空间
     assert(_promo_failure_scan_stack.is_empty(), "post condition");
     _promo_failure_scan_stack.clear(true); // Clear cached segments.
 
@@ -918,12 +930,14 @@ oop DefNewGeneration::copy_to_survivor_space(oop old) {
   oop obj = nullptr;
 
   // Try allocating obj in to-space (unless too old)
+  // 在To空间分配对象
   if (old->age() < tenuring_threshold()) {
     obj = cast_to_oop(to()->allocate(s));
   }
 
   bool new_obj_is_tenured = false;
   // Otherwise try allocating obj tenured
+  // 如果To空间分配失败，在老年代分配
   if (obj == nullptr) {
     obj = _old_gen->promote(old, s);
     if (obj == nullptr) {
@@ -937,16 +951,19 @@ oop DefNewGeneration::copy_to_survivor_space(oop old) {
     Prefetch::write(obj, interval);
 
     // Copy obj
+    // 将对象复制到To空间
     Copy::aligned_disjoint_words(cast_from_oop<HeapWord*>(old), cast_from_oop<HeapWord*>(obj), s);
 
     ContinuationGCSupport::transform_stack_chunk(obj);
 
     // Increment age if obj still in new generation
+    // 对象年龄增加
     obj->incr_age();
     age_table()->add(obj, s);
   }
 
   // Done, insert forward pointer to obj in this header
+  // 在对象头插入转发指针(使用新对象地址代替之前的对象地址，并设置对象头GC bit)
   old->forward_to(obj);
 
   if (SerialStringDedup::is_candidate_from_evacuation(obj, new_obj_is_tenured)) {

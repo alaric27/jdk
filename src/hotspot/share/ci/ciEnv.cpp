@@ -1166,6 +1166,7 @@ void ciEnv::register_method(ciMethod* target,
         // Allow the code to be executed
         MutexLocker ml(CompiledMethod_lock, Mutex::_no_safepoint_check_flag);
         if (nm->make_in_use()) {
+            // 设置方法的执行入口
           method->set_code(method, nm);
         }
       } else {

@@ -72,6 +72,7 @@ class frame {
 
   // 指向下一条指令的指针
   address   _pc; // program counter (the next instruction after the call)
+  // 存储了pc所指指令的实现
   mutable CodeBlob* _cb; // CodeBlob that "owns" pc
   mutable const ImmutableOopMap* _oop_map; // oop map, for compiled/stubs frames only
   enum deopt_state {
@@ -313,6 +314,7 @@ class frame {
   // Locals
 
   // The _at version returns a pointer because the address is used for GC.
+  // 局部变量
   intptr_t* interpreter_frame_local_at(int index) const;
 
   void interpreter_frame_set_locals(intptr_t* locs);
@@ -321,6 +323,7 @@ class frame {
   jint interpreter_frame_bci() const;
 
   // byte code pointer
+  // bcp PC寄存器的概念
   address interpreter_frame_bcp() const;
   void    interpreter_frame_set_bcp(address bcp);
 
@@ -350,6 +353,7 @@ class frame {
   intptr_t* interpreter_frame_expression_stack() const;
 
   // The _at version returns a pointer because the address is used for GC.
+  // 操作数栈
   intptr_t* interpreter_frame_expression_stack_at(jint offset) const;
 
   // top of expression stack

@@ -88,8 +88,10 @@ void GenMarkSweep::invoke_at_safepoint(bool clear_all_softrefs) {
 
   allocate_stacks();
 
+  // 阶段一， 标记存活对象
   mark_sweep_phase1(clear_all_softrefs);
 
+  // 阶段二，计算对象新地址
   mark_sweep_phase2();
 
   // Don't add any more derived pointers during phase3
@@ -98,8 +100,10 @@ void GenMarkSweep::invoke_at_safepoint(bool clear_all_softrefs) {
   DerivedPointerTable::set_active(false);
 #endif
 
+  // 阶段三， 调整对象指针
   mark_sweep_phase3();
 
+  // 阶段四，移动对象
   mark_sweep_phase4();
 
   restore_marks();

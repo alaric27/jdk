@@ -316,6 +316,7 @@ bool ObjectMonitor::enter(JavaThread* current) {
   // The following code is ordered to check the most common cases first
   // and to reduce RTS->RTO cache line upgrades on SPARC and IA32 processors.
 
+  //  cas 抢锁，如果当前线程抢到锁，则直接返回
   void* cur = try_set_owner_from(nullptr, current);
   if (cur == nullptr) {
     assert(_recursions == 0, "invariant");
@@ -344,6 +345,7 @@ bool ObjectMonitor::enter(JavaThread* current) {
   // transitions.  The following spin is strictly optional ...
   // Note that if we acquire the monitor from an initial spin
   // we forgo posting JVMTI events and firing DTRACE probes.
+  // 尝试自旋等待锁
   if (TrySpin(current) > 0) {
     assert(owner_raw() == current, "must be current: owner=" INTPTR_FORMAT, p2i(owner_raw()));
     assert(_recursions == 0, "must be 0: recursions=" INTX_FORMAT, _recursions);
@@ -411,6 +413,7 @@ bool ObjectMonitor::enter(JavaThread* current) {
     for (;;) {
       ExitOnSuspend eos(this);
       {
+          // 改变当前线程的状态，使其阻塞在对象锁上
         ThreadBlockInVMPreprocess<ExitOnSuspend> tbivs(current, eos, true /* allow_suspend */);
         EnterI(current);
         current->set_current_pending_monitor(nullptr);

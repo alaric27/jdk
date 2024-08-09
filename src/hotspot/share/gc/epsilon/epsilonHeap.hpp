@@ -37,13 +37,13 @@
 class EpsilonHeap : public CollectedHeap {
   friend class VMStructs;
 private:
-  SoftRefPolicy _soft_ref_policy;
+  SoftRefPolicy _soft_ref_policy; // 软引用清除策略
   EpsilonMonitoringSupport* _monitoring_support;
-  MemoryPool* _pool;
-  GCMemoryManager _memory_manager;
-  ContiguousSpace* _space;
-  VirtualSpace _virtual_space;
-  size_t _max_tlab_size;
+  MemoryPool* _pool; // 内存池
+  GCMemoryManager _memory_manager; // 内存管理器
+  ContiguousSpace* _space; // 实际堆空间
+  VirtualSpace _virtual_space; // 虚拟内存
+  size_t _max_tlab_size; // 最大TLAB
   size_t _step_counter_update;
   size_t _step_heap_print;
   int64_t _decay_time_ns;
@@ -92,7 +92,10 @@ public:
 
   // Allocation
   HeapWord* allocate_work(size_t size, bool verbose = true);
+  // 内存分配
   HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded) override;
+
+  // TLAB分配
   HeapWord* allocate_new_tlab(size_t min_size,
                               size_t requested_size,
                               size_t* actual_size) override;
@@ -103,7 +106,9 @@ public:
   size_t max_tlab_size()                    const override { return _max_tlab_size; }
   size_t unsafe_max_tlab_alloc(Thread* thr) const override;
 
+  // System.gc 触发
   void collect(GCCause::Cause cause) override;
+  // 普通垃圾回收
   void do_full_collection(bool clear_all_soft_refs) override;
 
   // Heap walking support
